@@ -9,6 +9,7 @@ class NotifService : NotificationListenerService() {
 
     override fun onNotificationPosted(sbn: StatusBarNotification) {
         if (sbn.packageName == packageName) return // jangan catat notifikasi dari app ini sendiri
+        if (sbn.packageName in Prefs.ignored(this)) return // app yang kamu pilih untuk diabaikan
 
         val extras = sbn.notification.extras
         val title = extras.getCharSequence("android.title")?.toString() ?: ""

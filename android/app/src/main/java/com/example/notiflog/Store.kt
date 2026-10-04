@@ -47,4 +47,11 @@ object Prefs {
     }
 
     fun setLastLoc(ctx: Context, ms: Long) = sp(ctx).edit().putLong("lastLoc", ms).apply()
+
+    // Daftar package yang tidak dicatat notifikasinya.
+    fun ignored(ctx: Context): Set<String> = sp(ctx).getStringSet("ignored", emptySet()) ?: emptySet()
+
+    fun saveIgnored(ctx: Context, packages: Set<String>) {
+        sp(ctx).edit().putStringSet("ignored", packages).apply()
+    }
 }

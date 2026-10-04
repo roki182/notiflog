@@ -17,11 +17,16 @@ function doPost(e) {
   const notifRows = [];
   const locRows = [];
 
+  // Waktu diformat sebagai teks dengan zona WIB, supaya tidak tergantung zona waktu sheet.
+  const fmt = function (ms) {
+    return Utilities.formatDate(new Date(ms), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
+  };
+
   body.items.forEach(function (it) {
     if (it.kind === 'notif') {
-      notifRows.push([new Date(it.ts), it.app, it.title, it.text]);
+      notifRows.push([fmt(it.ts), it.app, it.title, it.text]);
     } else if (it.kind === 'loc') {
-      locRows.push([new Date(it.ts), it.lat, it.lon, it.acc]);
+      locRows.push([fmt(it.ts), it.lat, it.lon, it.acc]);
     }
   });
 
@@ -41,6 +46,9 @@ function getOrCreateSheet(ss, name, header) {
   let sh = ss.getSheetByName(name);
   if (!sh) {
     sh = ss.insertSheet(name);
+  }
+  // Pastikan header ada di baris 1 (tambahkan kalau sheet masih kosong).
+  if (sh.getLastRow() === 0) {
     sh.appendRow(header);
     sh.setFrozenRows(1);
   }

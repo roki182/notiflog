@@ -64,6 +64,10 @@ class MainActivity : AppCompatActivity() {
                 )
             }
         }
+        val btnIgnore = Button(this).apply {
+            text = "Pilih App yang Diabaikan"
+            setOnClickListener { pickIgnoredApps() }
+        }
         val btnSave = Button(this).apply {
             text = "4. Simpan & Aktifkan"
             setOnClickListener { saveAndSchedule() }
@@ -76,12 +80,40 @@ class MainActivity : AppCompatActivity() {
         root.addView(btnNotif)
         root.addView(btnLoc)
         root.addView(btnBgLoc)
+        root.addView(btnIgnore)
         root.addView(btnSave)
         setContentView(root)
 
         etUrl.setText(Prefs.url(this))
         etToken.setText(Prefs.token(this))
         etInterval.setText(Prefs.intervalMin(this).toString())
+    }
+
+    // Tampilkan semua app yang punya ikon peluncur, lalu simpan pilihan centang sebagai daftar abaikan.
+    private fun pickIgnoredApps() {
+        val pm = packageManager
+        val apps = pm.queryIntentActivities(
+            Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_LAUNCHER), 0
+        ).map { it.activityInfo.packageName to it.loadLabel(pm).toString() }
+            .filter { it.first != packageName }
+            .distinctBy { it.first }
+            .sortedBy { it.second.lowercase() }
+
+        val current = Prefs.ignored(this)
+        val labels: Array<CharSequence> = apps.map { it.second as CharSequence }.toTypedArray()
+        val checked = apps.map { it.first in current }.toBooleanArray()
+        val selected = checked.copyOf()
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Centang app yang tidak dicatat")
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked -> selected[which] = isChecked }
+            .setPositiveButton("Simpan") { _, _ ->
+                val result = apps.filterIndexed { i, _ -> selected[i] }.map { it.first }.toSet()
+                Prefs.saveIgnored(this, result)
+                Toast.makeText(this, "Daftar diabaikan disimpan (${result.size} app)", Toast.LENGTH_SHORT).show()
+            }
+            .setNegativeButton("Batal", null)
+            .show()
     }
 
     private fun saveAndSchedule() {
