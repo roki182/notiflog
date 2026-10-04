@@ -38,7 +38,7 @@ class NotifService : NotificationListenerService() {
     // ikut dalam pengiriman yang sama (KEEP), jadi tidak membuat banyak pekerjaan.
     private fun scheduleUploadSoon() {
         val req = OneTimeWorkRequestBuilder<UploadWorker>()
-            .setInitialDelay(20, TimeUnit.SECONDS)
+            .setInitialDelay(2, TimeUnit.SECONDS)
             .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
             .build()
         WorkManager.getInstance(this).enqueueUniqueWork("upload-soon", ExistingWorkPolicy.KEEP, req)
