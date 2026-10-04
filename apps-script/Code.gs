@@ -22,24 +22,43 @@ function doPost(e) {
     return Utilities.formatDate(new Date(ms), 'Asia/Jakarta', 'dd/MM/yyyy HH:mm:ss');
   };
 
+  // Lewati data yang ID-nya sudah ada di sheet, supaya kiriman ulang tidak membuat duplikat.
+  const notifSh = getOrCreateSheet(notifSs, 'Notifikasi', ['Waktu', 'Aplikasi', 'Judul', 'Isi', 'ID']);
+  const locSh = getOrCreateSheet(locSs, 'Lokasi', ['Waktu', 'Lat', 'Lon', 'Akurasi (m)', 'ID']);
+  const seenNotif = existingIds(notifSh);
+  const seenLoc = existingIds(locSh);
+
   body.items.forEach(function (it) {
-    if (it.kind === 'notif') {
-      notifRows.push([fmt(it.ts), it.app, it.title, it.text]);
-    } else if (it.kind === 'loc') {
-      locRows.push([fmt(it.ts), it.lat, it.lon, it.acc]);
+    if (!it.id) return;
+    if (it.kind === 'notif' && !seenNotif.has(it.id)) {
+      notifRows.push([fmt(it.ts), it.app, it.title, it.text, it.id]);
+      seenNotif.add(it.id);
+    } else if (it.kind === 'loc' && !seenLoc.has(it.id)) {
+      locRows.push([fmt(it.ts), it.lat, it.lon, it.acc, it.id]);
+      seenLoc.add(it.id);
     }
   });
 
   if (notifRows.length) {
-    const sh = getOrCreateSheet(notifSs, 'Notifikasi', ['Waktu', 'Aplikasi', 'Judul', 'Isi']);
-    sh.getRange(sh.getLastRow() + 1, 1, notifRows.length, 4).setValues(notifRows);
+    notifSh.getRange(notifSh.getLastRow() + 1, 1, notifRows.length, 5).setValues(notifRows);
   }
   if (locRows.length) {
-    const sh = getOrCreateSheet(locSs, 'Lokasi', ['Waktu', 'Lat', 'Lon', 'Akurasi (m)']);
-    sh.getRange(sh.getLastRow() + 1, 1, locRows.length, 4).setValues(locRows);
+    locSh.getRange(locSh.getLastRow() + 1, 1, locRows.length, 5).setValues(locRows);
   }
 
   return ContentService.createTextOutput('ok');
+}
+
+// Ambil semua ID yang sudah tercatat di kolom E (ID).
+function existingIds(sh) {
+  const ids = new Set();
+  const last = sh.getLastRow();
+  if (last > 1) {
+    sh.getRange(2, 5, last - 1, 1).getValues().forEach(function (r) {
+      if (r[0]) ids.add(String(r[0]));
+    });
+  }
+  return ids;
 }
 
 function getOrCreateSheet(ss, name, header) {

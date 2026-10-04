@@ -40,6 +40,7 @@ class LocationWorker(private val ctx: Context, params: WorkerParameters) : Worke
             val loc = Tasks.await(fused.getCurrentLocation(request, cts.token), 45, TimeUnit.SECONDS)
             if (loc != null) {
                 val json = JSONObject()
+                    .put("id", "l|${loc.time}")
                     .put("kind", "loc")
                     .put("ts", loc.time)
                     .put("lat", loc.latitude)

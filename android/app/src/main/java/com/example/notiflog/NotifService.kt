@@ -18,6 +18,7 @@ class NotifService : NotificationListenerService() {
             ?: ""
 
         val json = JSONObject()
+            .put("id", "n|${sbn.key}|${sbn.postTime}") // ID unik untuk mencegah data ganda di sheet
             .put("kind", "notif")
             .put("ts", sbn.postTime)
             .put("app", sbn.packageName)
