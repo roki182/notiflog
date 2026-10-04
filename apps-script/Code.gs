@@ -66,9 +66,9 @@ function getOrCreateSheet(ss, name, header) {
   if (!sh) {
     sh = ss.insertSheet(name);
   }
-  // Pastikan header ada di baris 1 (tambahkan kalau sheet masih kosong).
-  if (sh.getLastRow() === 0) {
-    sh.appendRow(header);
+  // Pastikan header lengkap ada di baris 1, termasuk kolom ID (tambahkan kalau belum ada).
+  if (sh.getRange(1, header.length).getValue() === '') {
+    sh.getRange(1, 1, 1, header.length).setValues([header]);
     sh.setFrozenRows(1);
   }
   return sh;
