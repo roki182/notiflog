@@ -15,7 +15,12 @@ class UploadWorker(private val ctx: Context, params: WorkerParameters) : Worker(
         // Worker ini jalan tiap 15 menit, jadi sekalian pastikan listener notifikasi masih tersambung.
         NotifService.ensureBound(ctx)
         Prefs.setStat(ctx, "worker")
+        // Hanya satu upload yang boleh berjalan. Kalau dua worker jalan bersamaan, keduanya membaca
+        // antrian yang sama dan mengirim data yang sama, sehingga muncul baris ganda di sheet.
+        return synchronized(UPLOAD_LOCK) { upload() }
+    }
 
+    private fun upload(): Result {
         val url = Prefs.url(ctx)
         val token = Prefs.token(ctx)
         if (url.isBlank() || token.isBlank()) return Result.success()
@@ -50,6 +55,10 @@ class UploadWorker(private val ctx: Context, params: WorkerParameters) : Worker(
         } catch (e: Exception) {
             Result.retry()
         }
+    }
+
+    private companion object {
+        val UPLOAD_LOCK = Any()
     }
 
     // Apps Script membalas dengan redirect 302. Redirect itu harus diikuti dengan POST lagi,
