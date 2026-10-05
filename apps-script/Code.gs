@@ -38,18 +38,18 @@ function handlePost(e) {
   const locSh = getOrCreateSheet(locSs, 'Lokasi', ['Waktu', 'Lat', 'Lon', 'Akurasi (m)', 'ID', 'Google Maps']);
   const seenNotif = existingIds(notifSh);
   const seenLoc = existingIds(locSh);
-  const lastText = lastTextByTitle(notifSh);
+  const lastSeen = lastSeenByContent(notifSh);
 
   body.items.forEach(function (it) {
     if (!it.id) return;
     if (it.kind === 'notif' && !seenNotif.has(it.id)) {
       seenNotif.add(it.id);
-      // Lewati notifikasi yang aplikasi, judul, dan isinya sama persis dengan yang terakhir tercatat
-      // dan masuk dalam DUP_WINDOW_MS. Lewat dari itu dianggap pesan baru.
-      const key = it.app + '|' + it.title;
-      const prev = lastText.get(key);
-      if (prev && prev.text === String(it.text) && it.ts - prev.ts <= DUP_WINDOW_MS) return;
-      lastText.set(key, { text: String(it.text), ts: it.ts });
+      // Lewati notifikasi yang aplikasi, judul, dan isinya sama persis dengan yang sudah tercatat
+      // dalam DUP_WINDOW_MS. Lewat dari itu dianggap pesan baru.
+      const key = dupKey(it.app, it.title, it.text);
+      const prevTs = lastSeen.get(key);
+      if (prevTs !== undefined && Math.abs(it.ts - prevTs) <= DUP_WINDOW_MS) return;
+      lastSeen.set(key, it.ts);
       notifRows.push([fmt(it.ts), it.app, it.title, it.text, it.id]);
     } else if (it.kind === 'loc' && !seenLoc.has(it.id)) {
       locRows.push([fmt(it.ts), it.lat, it.lon, it.acc, it.id, mapsLink(it.lat, it.lon)]);
@@ -82,16 +82,22 @@ function existingIds(sh) {
 // Notifikasi dengan isi sama dalam rentang ini dianggap berulang (1 menit).
 const DUP_WINDOW_MS = 60 * 1000;
 
-// Isi dan waktu notifikasi terakhir per (aplikasi, judul) dari 500 baris terakhir di sheet.
+// Kunci isi notifikasi: aplikasi + judul + isi. Dicocokkan per kombinasi lengkap, supaya pesan yang
+// selang-seling dengan judul sama (misalnya "boleh tes" dan "2 new messages") tidak saling menimpa.
+function dupKey(app, title, text) {
+  return String(app) + '|' + String(title) + '|' + String(text);
+}
+
+// Waktu terakhir tiap kombinasi (aplikasi, judul, isi) dari 500 baris terakhir di sheet.
 // Waktu diambil dari bagian akhir ID ("n|key|postTime"), bukan dari kolom Waktu yang berupa teks.
-function lastTextByTitle(sh) {
+function lastSeenByContent(sh) {
   const map = new Map();
   const last = sh.getLastRow();
   if (last > 1) {
     const first = Math.max(2, last - 499);
     sh.getRange(first, 2, last - first + 1, 4).getValues().forEach(function (r) {
       const ts = Number(String(r[3]).split('|').pop());
-      map.set(r[0] + '|' + r[1], { text: String(r[2]), ts: ts });
+      if (!isNaN(ts)) map.set(dupKey(r[0], r[1], r[2]), ts);
     });
   }
   return map;
