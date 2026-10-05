@@ -25,36 +25,38 @@ class UploadWorker(private val ctx: Context, params: WorkerParameters) : Worker(
         val token = Prefs.token(ctx)
         if (url.isBlank() || token.isBlank()) return Result.success()
 
-        val lines = Store.readAll(ctx)
-        if (lines.isEmpty()) return Result.success()
+        val ignored = Prefs.ignored(ctx)
 
-        val batch = lines.take(200)
-        val items = JSONArray()
-        // Baris rusak (misalnya terpotong saat app dimatikan paksa) dilewati, bukan membuat
-        // seluruh antrian macet selamanya. Baris itu ikut dibuang bersama batch.
-        batch.forEach { line ->
-            try {
-                items.put(JSONObject(line))
-            } catch (e: Exception) {
+        // Kirim antrian per 200 baris sampai habis (maksimal 25 putaran per eksekusi).
+        repeat(25) {
+            val lines = Store.readAll(ctx)
+            if (lines.isEmpty()) return Result.success()
+
+            val batch = lines.take(200)
+            val items = JSONArray()
+            // Baris rusak (misalnya terpotong saat app dimatikan paksa) dilewati, bukan membuat
+            // seluruh antrian macet selamanya. Notifikasi dari app yang kini diabaikan juga dibuang,
+            // termasuk yang sudah telanjur masuk antrian. Baris itu ikut dibuang bersama batch.
+            batch.forEach { line ->
+                try {
+                    val obj = JSONObject(line)
+                    if (obj.optString("kind") == "notif" && obj.optString("app") in ignored) return@forEach
+                    items.put(obj)
+                } catch (e: Exception) {
+                }
             }
-        }
-        if (items.length() == 0) {
-            Store.dropFirst(ctx, batch.size)
-            return Result.success()
-        }
-        val body = JSONObject().put("token", token).put("items", items).toString()
-
-        return try {
-            if (post(url, body)) {
+            if (items.length() > 0) {
+                val body = JSONObject().put("token", token).put("items", items).toString()
+                try {
+                    if (!post(url, body)) return Result.retry()
+                } catch (e: Exception) {
+                    return Result.retry()
+                }
                 Prefs.setStat(ctx, "upload")
-                Store.dropFirst(ctx, batch.size)
-                Result.success()
-            } else {
-                Result.retry()
             }
-        } catch (e: Exception) {
-            Result.retry()
+            Store.dropFirst(ctx, batch.size)
         }
+        return Result.success()
     }
 
     private companion object {

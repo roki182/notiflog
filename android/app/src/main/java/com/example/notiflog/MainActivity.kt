@@ -129,6 +129,7 @@ class MainActivity : AppCompatActivity() {
             "Worker terakhir jalan: ${t("worker")}\n" +
             "Upload sukses terakhir: ${t("upload")}\n" +
             "Antrian belum terkirim: ${Store.readAll(this).size}\n" +
+            "App diabaikan: ${Prefs.ignored(this).sorted().joinToString(", ").ifEmpty { "-" }}\n" +
             "Proses terakhir dimatikan:\n" + exitReasons(fmt)
     }
 
@@ -178,7 +179,8 @@ class MainActivity : AppCompatActivity() {
             .sortedBy { it.second.lowercase() }
 
         val current = Prefs.ignored(this)
-        val labels: Array<CharSequence> = apps.map { it.second as CharSequence }.toTypedArray()
+        // Nama package ikut ditampilkan, karena ada app yang namanya mirip.
+        val labels: Array<CharSequence> = apps.map { "${it.second}\n${it.first}" as CharSequence }.toTypedArray()
         val checked = apps.map { it.first in current }.toBooleanArray()
         val selected = checked.copyOf()
 
@@ -189,6 +191,7 @@ class MainActivity : AppCompatActivity() {
                 val result = apps.filterIndexed { i, _ -> selected[i] }.map { it.first }.toSet()
                 Prefs.saveIgnored(this, result)
                 Toast.makeText(this, "Daftar diabaikan disimpan (${result.size} app)", Toast.LENGTH_SHORT).show()
+                onResume() // segarkan tampilan status
             }
             .setNegativeButton("Batal", null)
             .show()
