@@ -9,9 +9,9 @@
     <string name="btn_notif_access">1. Buka Akses Notifikasi</string>
     <string name="btn_location_perm">2. Izinkan Lokasi</string>
     <string name="btn_app_settings">3. Buka Pengaturan App (pilih Lokasi > Izinkan sepanjang waktu)</string>
-    <string name="btn_battery">Matikan Optimasi Baterai (agar tidak dimatikan sistem)</string>
+    <string name="btn_battery">4. Matikan Optimasi Baterai (agar tidak dimatikan sistem)</string>
     <string name="btn_ignore_apps">Pilih App yang Diabaikan</string>
-    <string name="btn_save">4. Simpan &amp; Aktifkan</string>
+    <string name="btn_save">5. Simpan &amp; Aktifkan</string>
     <string name="btn_language">Bahasa: %1$s</string>
 
     <string name="chk_skip_ongoing">Abaikan notifikasi ongoing (speed meter, musik, navigasi)</string>

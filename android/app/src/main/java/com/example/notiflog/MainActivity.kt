@@ -104,32 +104,37 @@ class MainActivity : AppCompatActivity() {
             setOnClickListener { saveAndSchedule() }
         }
 
-        root.addView(TextView(this).apply { text = getString(R.string.app_title); textSize = 20f })
-        root.addView(etUrl)
-        root.addView(etToken)
-        root.addView(etInterval)
-        root.addView(btnNotif)
-        root.addView(btnLoc)
-        root.addView(btnBgLoc)
         etRules = EditText(this).apply {
             hint = getString(R.string.hint_rules)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 3
             gravity = android.view.Gravity.TOP
         }
-        root.addView(etRules)
         tvStatus = TextView(this)
-        root.addView(tvStatus)
+
+        // Urutan: isian, tombol & pengaturan, lalu status di paling bawah.
+        root.addView(TextView(this).apply { text = getString(R.string.app_title); textSize = 20f })
+        root.addView(etUrl)
+        root.addView(etToken)
+        root.addView(etInterval)
+        root.addView(etRules)
+        root.addView(btnNotif)
+        root.addView(btnLoc)
+        root.addView(btnBgLoc)
+        root.addView(btnBattery)
+        root.addView(btnSave)
         root.addView(android.widget.CheckBox(this).apply {
             text = getString(R.string.chk_skip_ongoing)
             isChecked = Prefs.skipOngoing(this@MainActivity)
             setOnCheckedChangeListener { _, checked -> Prefs.saveSkipOngoing(this@MainActivity, checked) }
         })
-        root.addView(btnBattery)
         root.addView(btnIgnore)
         root.addView(btnLanguage)
-        root.addView(btnSave)
-        setContentView(root)
+        root.addView(tvStatus)
+        setContentView(android.widget.ScrollView(this).apply {
+            isFillViewport = true
+            addView(root)
+        })
 
         etUrl.setText(Prefs.url(this))
         etToken.setText(Prefs.token(this))
