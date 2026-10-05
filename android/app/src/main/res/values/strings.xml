@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_title">NotifLog</string>
+    <string name="hint_url">Apps Script Web App URL</string>
+    <string name="hint_token">Token (same as TOKEN in Apps Script)</string>
+    <string name="hint_interval">Location interval (minutes), default 30</string>
+    <string name="hint_rules">Location triggers, one rule per line: app|title|text\n(leave a part empty for anything, e.g. whatsapp||emergency)</string>
+
+    <string name="btn_notif_access">1. Open Notification Access</string>
+    <string name="btn_location_perm">2. Allow Location</string>
+    <string name="btn_app_settings">3. Open App Settings (choose Location > Allow all the time)</string>
+    <string name="btn_battery">Disable Battery Optimization (so the system does not kill the app)</string>
+    <string name="btn_ignore_apps">Choose Ignored Apps</string>
+    <string name="btn_save">4. Save &amp; Activate</string>
+    <string name="btn_language">Language: %1$s</string>
+
+    <string name="chk_skip_ongoing">Ignore ongoing notifications (speed meter, music, navigation)</string>
+
+    <string name="toast_battery_already">Already excluded from battery optimization</string>
+    <string name="toast_ignored_saved">Ignored list saved (%1$d apps)</string>
+    <string name="toast_saved">Saved. Location interval: %1$d minutes</string>
+
+    <string name="dialog_ignore_title">Check the apps that should not be logged</string>
+    <string name="dialog_save">Save</string>
+    <string name="dialog_cancel">Cancel</string>
+    <string name="dialog_language_title">Language</string>
+
+    <string name="status_listener_connected">Listener connected: %1$s</string>
+    <string name="status_listener_disconnected">Listener disconnected: %1$s</string>
+    <string name="status_last_notif">Last notification: %1$s</string>
+    <string name="status_last_worker">Worker last ran: %1$s</string>
+    <string name="status_last_upload">Last successful upload: %1$s</string>
+    <string name="status_queue">Pending queue: %1$d</string>
+    <string name="status_ignored_apps">Ignored apps: %1$s</string>
+    <string name="status_recent_header">Recent notifications (status):</string>
+    <string name="status_exit_header">Process last killed:</string>
+
+    <string name="recent_logged">logged</string>
+    <string name="recent_ongoing">ongoing</string>
+    <string name="recent_ignored">ignored</string>
+
+    <string name="exit_needs_android11">(needs Android 11+)</string>
+    <string name="exit_signaled">SIGNALED (killed by signal)</string>
+    <string name="exit_user_stopped">USER_STOPPED (force stop)</string>
+</resources>
