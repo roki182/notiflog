@@ -68,6 +68,26 @@ object Prefs {
         sp(ctx).edit().putStringSet("ignored", packages).apply()
     }
 
+    // Daftar singkat notifikasi terbaru yang diterima app beserta nasibnya, untuk diagnosa.
+    // Satu baris: waktu|status|package|judul. Hanya disimpan di HP, maksimal 15 baris.
+    // Status selain "dicatat" hanya ditulis sekali per menit per app supaya tidak menulis terus
+    // untuk notifikasi yang berubah tiap detik (misalnya speed meter).
+    @Synchronized
+    fun logRecent(ctx: Context, pkg: String, title: String, status: String) {
+        val now = System.currentTimeMillis()
+        val old = recent(ctx)
+        if (status != "dicatat" && old.any {
+                val p = it.split("|", limit = 4)
+                p.size == 4 && p[1] == status && p[2] == pkg && now - (p[0].toLongOrNull() ?: 0L) < 60_000L
+            }) return
+        val clean = title.replace('\n', ' ').replace('|', '/').take(40)
+        val updated = (old + "$now|$status|$pkg|$clean").takeLast(15)
+        sp(ctx).edit().putString("recent", updated.joinToString("\n")).apply()
+    }
+
+    fun recent(ctx: Context): List<String> =
+        (sp(ctx).getString("recent", "") ?: "").lines().filter { it.isNotBlank() }
+
     // Notifikasi "ongoing" (menempel terus di status bar: speed meter, musik, navigasi) diabaikan.
     fun skipOngoing(ctx: Context) = sp(ctx).getBoolean("skipOngoing", true)
 
