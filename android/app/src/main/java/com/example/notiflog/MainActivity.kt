@@ -128,7 +128,43 @@ class MainActivity : AppCompatActivity() {
             "Notifikasi terakhir: ${t("notif")}\n" +
             "Worker terakhir jalan: ${t("worker")}\n" +
             "Upload sukses terakhir: ${t("upload")}\n" +
-            "Antrian belum terkirim: ${Store.readAll(this).size}"
+            "Antrian belum terkirim: ${Store.readAll(this).size}\n" +
+            "Proses terakhir dimatikan:\n" + exitReasons(fmt)
+    }
+
+    // Android mencatat kenapa proses app dimatikan (Android 11 ke atas). Tampilkan 5 terakhir.
+    private fun exitReasons(fmt: java.text.SimpleDateFormat): String {
+        if (android.os.Build.VERSION.SDK_INT < 30) return "(perlu Android 11+)"
+        return try {
+            val am = getSystemService(android.app.ActivityManager::class.java)
+            val list = am.getHistoricalProcessExitReasons(packageName, 0, 5)
+            if (list.isEmpty()) "-" else list.joinToString("\n") {
+                "${fmt.format(java.util.Date(it.timestamp))}  ${reasonName(it.reason)}" +
+                    (it.description?.let { d -> " ($d)" } ?: "")
+            }
+        } catch (e: Exception) {
+            "-"
+        }
+    }
+
+    private fun reasonName(r: Int) = when (r) {
+        1 -> "EXIT_SELF"
+        2 -> "SIGNALED (dibunuh sinyal)"
+        3 -> "LOW_MEMORY"
+        4 -> "CRASH"
+        5 -> "CRASH_NATIVE"
+        6 -> "ANR"
+        7 -> "INITIALIZATION_FAILURE"
+        8 -> "PERMISSION_CHANGE"
+        9 -> "EXCESSIVE_RESOURCE_USAGE"
+        10 -> "USER_REQUESTED"
+        11 -> "USER_STOPPED (force stop)"
+        12 -> "DEPENDENCY_DIED"
+        13 -> "OTHER"
+        14 -> "FREEZER"
+        15 -> "PACKAGE_STATE_CHANGE"
+        16 -> "PACKAGE_UPDATED"
+        else -> "reason $r"
     }
 
     // Tampilkan semua app yang punya ikon peluncur, lalu simpan pilihan centang sebagai daftar abaikan.
