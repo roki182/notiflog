@@ -10,8 +10,8 @@
     <string name="btn_location_perm">2. Allow Location</string>
     <string name="btn_app_settings">3. Open App Settings (choose Location > Allow all the time)</string>
     <string name="btn_battery">4. Disable Battery Optimization (so the system does not kill the app)</string>
-    <string name="btn_ignore_apps">5. Choose Ignored Apps</string>
-    <string name="btn_save">6. Save &amp; Activate</string>
+    <string name="btn_ignore_apps">Choose Ignored Apps</string>
+    <string name="btn_save">5. Save &amp; Activate</string>
     <string name="btn_language">Language: %1$s</string>
 
     <string name="chk_skip_ongoing">Ignore ongoing notifications (speed meter, music, navigation)</string>
