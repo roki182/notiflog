@@ -68,6 +68,13 @@ object Prefs {
         sp(ctx).edit().putStringSet("ignored", packages).apply()
     }
 
+    // Notifikasi "ongoing" (menempel terus di status bar: speed meter, musik, navigasi) diabaikan.
+    fun skipOngoing(ctx: Context) = sp(ctx).getBoolean("skipOngoing", true)
+
+    fun saveSkipOngoing(ctx: Context, skip: Boolean) {
+        sp(ctx).edit().putBoolean("skipOngoing", skip).apply()
+    }
+
     // Aturan trigger lokasi, satu aturan per baris: aplikasi|judul|isi
     fun rules(ctx: Context) = sp(ctx).getString("rules", "") ?: ""
 

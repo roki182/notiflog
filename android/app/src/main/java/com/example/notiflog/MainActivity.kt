@@ -105,6 +105,11 @@ class MainActivity : AppCompatActivity() {
         root.addView(etRules)
         tvStatus = TextView(this)
         root.addView(tvStatus)
+        root.addView(android.widget.CheckBox(this).apply {
+            text = "Abaikan notifikasi ongoing (speed meter, musik, navigasi)"
+            isChecked = Prefs.skipOngoing(this@MainActivity)
+            setOnCheckedChangeListener { _, checked -> Prefs.saveSkipOngoing(this@MainActivity, checked) }
+        })
         root.addView(btnBattery)
         root.addView(btnIgnore)
         root.addView(btnSave)
