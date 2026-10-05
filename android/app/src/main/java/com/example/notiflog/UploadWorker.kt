@@ -63,19 +63,23 @@ class UploadWorker(private val ctx: Context, params: WorkerParameters) : Worker(
         val UPLOAD_LOCK = Any()
     }
 
-    // Apps Script membalas dengan redirect 302. Redirect itu harus diikuti dengan POST lagi,
-    // bukan GET (HttpURLConnection otomatis mengubahnya jadi GET), makanya redirect diikuti manual.
+    // Apps Script menjalankan doPost pada permintaan pertama, lalu membalas dengan redirect 302 ke
+    // alamat tempat hasilnya diambil. Redirect itu harus diikuti dengan GET (bukan POST, yang ditolak).
     private fun post(start: String, body: String): Boolean {
         var url = start
         for (i in 0 until 4) {
             val c = URL(url).openConnection() as HttpURLConnection
             c.instanceFollowRedirects = false
-            c.requestMethod = "POST"
-            c.doOutput = true
             c.connectTimeout = 15_000
             c.readTimeout = 30_000
-            c.setRequestProperty("Content-Type", "text/plain;charset=utf-8")
-            c.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            if (i == 0) {
+                c.requestMethod = "POST"
+                c.doOutput = true
+                c.setRequestProperty("Content-Type", "text/plain;charset=utf-8")
+                c.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
+            } else {
+                c.requestMethod = "GET"
+            }
             val code = c.responseCode
             val location = c.getHeaderField("Location")
             // Apps Script membalas 200 walau token salah ("forbidden"), jadi isi balasan harus dicek.
