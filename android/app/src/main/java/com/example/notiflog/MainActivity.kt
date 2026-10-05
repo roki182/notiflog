@@ -121,15 +121,15 @@ class MainActivity : AppCompatActivity() {
         root.addView(btnNotif)
         root.addView(btnLoc)
         root.addView(btnBgLoc)
+        root.addView(btnBattery)
         root.addView(android.widget.CheckBox(this).apply {
             text = getString(R.string.chk_skip_ongoing)
             isChecked = Prefs.skipOngoing(this@MainActivity)
             setOnCheckedChangeListener { _, checked -> Prefs.saveSkipOngoing(this@MainActivity, checked) }
         })
-        root.addView(btnBattery)
         root.addView(btnIgnore)
-        root.addView(btnLanguage)
         root.addView(btnSave)
+        root.addView(btnLanguage)
         root.addView(tvStatus)
         setContentView(android.widget.ScrollView(this).apply {
             isFillViewport = true
