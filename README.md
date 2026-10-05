@@ -3,7 +3,7 @@
 Aplikasi Android yang mencatat notifikasi dan lokasi HP, lalu mengirimnya ke Google Sheet lewat Google Apps Script.
 
 - `android/` — aplikasi Android (Kotlin)
-- `apps-script/Code.gs` — server penerima data, menulis ke dua spreadsheet (Notifikasi dan Lokasi)
+- `apps-script/Code.gs` — server penerima data, menulis ke satu spreadsheet (`NOTIF_SHEET`) dengan dua tab: Notifikasi dan Lokasi. Kalau sebelumnya lokasi ada di file terpisah (`LOC_SHEET`), jalankan `migrateLocations` sekali dari editor Apps Script untuk menyalin datanya ke tab Lokasi yang baru.
 - `.github/workflows/build.yml` — build APK otomatis
 
 ## Cara kerja singkat
