@@ -41,8 +41,15 @@ class NotifService : NotificationListenerService() {
 
         // Aturan trigger dicek sebelum daftar abaikan, jadi app yang tidak dicatat tetap bisa memicu lokasi.
         if (Triggers.matches(this, sbn.packageName, title, text)) scheduleLocationNow()
-        if (sbn.packageName in Prefs.ignored(this)) return // app yang kamu pilih untuk diabaikan
-        if (sbn.isOngoing && Prefs.skipOngoing(this)) return // notifikasi yang menempel terus di status bar
+        if (sbn.packageName in Prefs.ignored(this)) { // app yang kamu pilih untuk diabaikan
+            Prefs.logRecent(this, sbn.packageName, title, "diabaikan")
+            return
+        }
+        if (sbn.isOngoing && Prefs.skipOngoing(this)) { // notifikasi yang menempel terus di status bar
+            Prefs.logRecent(this, sbn.packageName, title, "ongoing")
+            return
+        }
+        Prefs.logRecent(this, sbn.packageName, title, "dicatat")
 
         val json = JSONObject()
             .put("id", "n|${sbn.key}|${sbn.postTime}") // ID unik untuk mencegah data ganda di sheet

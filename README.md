@@ -33,7 +33,7 @@ Tanpa pengaturan ini, sistem Android bisa mematikan app di latar belakang (gejal
 4. Kunci app di Recent Apps (tarik kartu app ke bawah).
 
 ### Diagnosa
-Layar utama app menampilkan kapan listener terakhir tersambung/terputus, kapan notifikasi dan upload terakhir, serta jumlah antrian. Setelah data berhenti, buka app dan lihat status itu:
+Layar utama app menampilkan kapan listener terakhir tersambung/terputus, kapan notifikasi dan upload terakhir, jumlah antrian, dan 8 notifikasi terbaru yang diterima app beserta statusnya (`dicatat`, `ongoing`, atau `diabaikan`). Daftar ini hanya disimpan di HP dan berguna untuk mencari tahu kenapa suatu notifikasi, misalnya missed call, tidak muncul di sheet. Kalau notifikasinya tidak ada di daftar sama sekali, berarti HP tidak meneruskannya ke app. Setelah data berhenti, buka app dan lihat status itu:
 
 - Listener terputus dan tidak tersambung lagi: sistem mematikan listener, periksa lagi pengaturan di atas.
 - Listener tersambung tapi upload terakhir sudah lama: masalah jaringan atau Apps Script.

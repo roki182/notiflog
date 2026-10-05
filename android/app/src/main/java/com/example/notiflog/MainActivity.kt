@@ -135,7 +135,19 @@ class MainActivity : AppCompatActivity() {
             "Upload sukses terakhir: ${t("upload")}\n" +
             "Antrian belum terkirim: ${Store.readAll(this).size}\n" +
             "App diabaikan: ${Prefs.ignored(this).sorted().joinToString(", ").ifEmpty { "-" }}\n" +
+            "Notifikasi terbaru (status):\n" + recentNotifs() + "\n" +
             "Proses terakhir dimatikan:\n" + exitReasons(fmt)
+    }
+
+    // 8 notifikasi terakhir yang diterima app, yang terbaru di atas, beserta statusnya.
+    private fun recentNotifs(): String {
+        val fmt = java.text.SimpleDateFormat("HH:mm:ss", java.util.Locale.US)
+        val rows = Prefs.recent(this).takeLast(8).reversed().mapNotNull {
+            val p = it.split("|", limit = 4)
+            if (p.size < 4) null
+            else "${fmt.format(java.util.Date(p[0].toLongOrNull() ?: 0L))} [${p[1]}] ${p[2]} - ${p[3]}"
+        }
+        return if (rows.isEmpty()) "-" else rows.joinToString("\n")
     }
 
     // Android mencatat kenapa proses app dimatikan (Android 11 ke atas). Tampilkan 5 terakhir.
