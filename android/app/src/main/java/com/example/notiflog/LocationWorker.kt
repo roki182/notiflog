@@ -4,6 +4,11 @@ import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
 import androidx.core.content.ContextCompat
+import androidx.work.Constraints
+import androidx.work.ExistingWorkPolicy
+import androidx.work.NetworkType
+import androidx.work.OneTimeWorkRequestBuilder
+import androidx.work.WorkManager
 import androidx.work.Worker
 import androidx.work.WorkerParameters
 import com.google.android.gms.location.CurrentLocationRequest
@@ -20,9 +25,17 @@ import java.util.concurrent.TimeUnit
 class LocationWorker(private val ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
 
     override fun doWork(): Result {
+        NotifService.ensureBound(ctx)
         val now = System.currentTimeMillis()
-        val intervalMs = Prefs.intervalMin(ctx) * 60_000L
-        if (now - Prefs.lastLoc(ctx) < intervalMs - 60_000L) return Result.success()
+        // FORCE = dipicu notifikasi yang cocok dengan aturan: abaikan interval, tapi tetap beri
+        // jeda 30 detik antar pengambilan supaya notifikasi beruntun tidak menyalakan GPS terus.
+        val force = inputData.getBoolean(FORCE, false)
+        if (force) {
+            if (now - Prefs.stat(ctx, "trigloc") < 30_000L) return Result.success()
+        } else {
+            val intervalMs = Prefs.intervalMin(ctx) * 60_000L
+            if (now - Prefs.lastLoc(ctx) < intervalMs - 60_000L) return Result.success()
+        }
 
         val granted = ContextCompat.checkSelfPermission(ctx, Manifest.permission.ACCESS_FINE_LOCATION) ==
             PackageManager.PERMISSION_GRANTED
@@ -47,11 +60,26 @@ class LocationWorker(private val ctx: Context, params: WorkerParameters) : Worke
                     .put("lon", loc.longitude)
                     .put("acc", loc.accuracy.toDouble())
                 Store.append(ctx, json.toString())
-                Prefs.setLastLoc(ctx, now)
+                if (force) {
+                    Prefs.setStat(ctx, "trigloc")
+                    // Lokasi dipicu tidak menunggu upload berkala 15 menit.
+                    WorkManager.getInstance(ctx).enqueueUniqueWork(
+                        "upload-soon", ExistingWorkPolicy.KEEP,
+                        OneTimeWorkRequestBuilder<UploadWorker>()
+                            .setConstraints(Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                            .build()
+                    )
+                } else {
+                    Prefs.setLastLoc(ctx, now)
+                }
             }
             Result.success()
         } catch (e: Exception) {
-            Result.retry()
+            if (force && runAttemptCount >= 2) Result.success() else Result.retry()
         }
+    }
+
+    companion object {
+        const val FORCE = "force"
     }
 }

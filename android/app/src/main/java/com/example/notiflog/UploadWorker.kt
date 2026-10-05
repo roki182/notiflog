@@ -12,6 +12,10 @@ import java.net.URL
 class UploadWorker(private val ctx: Context, params: WorkerParameters) : Worker(ctx, params) {
 
     override fun doWork(): Result {
+        // Worker ini jalan tiap 15 menit, jadi sekalian pastikan listener notifikasi masih tersambung.
+        NotifService.ensureBound(ctx)
+        Prefs.setStat(ctx, "worker")
+
         val url = Prefs.url(ctx)
         val token = Prefs.token(ctx)
         if (url.isBlank() || token.isBlank()) return Result.success()
@@ -21,11 +25,23 @@ class UploadWorker(private val ctx: Context, params: WorkerParameters) : Worker(
 
         val batch = lines.take(200)
         val items = JSONArray()
-        batch.forEach { items.put(JSONObject(it)) }
+        // Baris rusak (misalnya terpotong saat app dimatikan paksa) dilewati, bukan membuat
+        // seluruh antrian macet selamanya. Baris itu ikut dibuang bersama batch.
+        batch.forEach { line ->
+            try {
+                items.put(JSONObject(line))
+            } catch (e: Exception) {
+            }
+        }
+        if (items.length() == 0) {
+            Store.dropFirst(ctx, batch.size)
+            return Result.success()
+        }
         val body = JSONObject().put("token", token).put("items", items).toString()
 
         return try {
             if (post(url, body)) {
+                Prefs.setStat(ctx, "upload")
                 Store.dropFirst(ctx, batch.size)
                 Result.success()
             } else {
@@ -51,12 +67,14 @@ class UploadWorker(private val ctx: Context, params: WorkerParameters) : Worker(
             c.outputStream.use { it.write(body.toByteArray(Charsets.UTF_8)) }
             val code = c.responseCode
             val location = c.getHeaderField("Location")
+            // Apps Script membalas 200 walau token salah ("forbidden"), jadi isi balasan harus dicek.
+            val reply = if (code in 200..299) c.inputStream.bufferedReader().use { it.readText() } else ""
             c.disconnect()
             if (code in 300..399 && location != null) {
                 url = location
                 continue
             }
-            return code in 200..299
+            return code in 200..299 && reply.trim() == "ok"
         }
         return false
     }
