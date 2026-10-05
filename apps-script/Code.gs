@@ -1,8 +1,9 @@
-// Google Apps Script: menerima data dari app dan menulis ke dua spreadsheet terpisah.
+// Google Apps Script: menerima data dari app dan menulis ke satu spreadsheet dengan dua tab:
+// "Notifikasi" dan "Lokasi".
 // Isi Script Properties (Project Settings > Script properties):
 //   TOKEN        = token rahasia bebas (contoh: string acak panjang)
-//   NOTIF_SHEET  = ID spreadsheet untuk notifikasi
-//   LOC_SHEET    = ID spreadsheet untuk lokasi (file berbeda)
+//   NOTIF_SHEET  = ID spreadsheet (satu file untuk kedua tab)
+//   LOC_SHEET    = (opsional) ID spreadsheet lokasi yang lama, hanya dipakai oleh migrateLocations()
 
 function doPost(e) {
   // Kunci supaya dua kiriman yang datang bersamaan tidak saling menimpa baris di sheet.
@@ -23,8 +24,7 @@ function handlePost(e) {
     return ContentService.createTextOutput('forbidden');
   }
 
-  const notifSs = SpreadsheetApp.openById(props.getProperty('NOTIF_SHEET'));
-  const locSs = SpreadsheetApp.openById(props.getProperty('LOC_SHEET'));
+  const ss = SpreadsheetApp.openById(props.getProperty('NOTIF_SHEET'));
   const notifRows = [];
   const locRows = [];
 
@@ -34,8 +34,8 @@ function handlePost(e) {
   };
 
   // Lewati data yang ID-nya sudah ada di sheet, supaya kiriman ulang tidak membuat duplikat.
-  const notifSh = getOrCreateSheet(notifSs, 'Notifikasi', ['Waktu', 'Aplikasi', 'Judul', 'Isi', 'ID']);
-  const locSh = getOrCreateSheet(locSs, 'Lokasi', ['Waktu', 'Lat', 'Lon', 'Akurasi (m)', 'ID', 'Google Maps']);
+  const notifSh = getOrCreateSheet(ss, 'Notifikasi', ['Waktu', 'Aplikasi', 'Judul', 'Isi', 'ID']);
+  const locSh = getOrCreateSheet(ss, 'Lokasi', LOC_HEADER);
   const seenNotif = existingIds(notifSh);
   const seenLoc = existingIds(locSh);
   const lastSeen = lastSeenByContent(notifSh);
@@ -108,10 +108,48 @@ function mapsLink(lat, lon) {
   return '=HYPERLINK("https://www.google.com/maps?q=' + lat + ',' + lon + '","Buka Maps")';
 }
 
+const LOC_HEADER = ['Waktu', 'Lat', 'Lon', 'Akurasi (m)', 'ID', 'Google Maps'];
+
+// Jalankan SEKALI dari editor Apps Script setelah beralih ke satu file: menyalin data dari
+// spreadsheet lokasi yang lama (LOC_SHEET) ke tab "Lokasi" di file utama (NOTIF_SHEET).
+// Baris yang ID-nya sudah ada dilewati, jadi aman kalau tidak sengaja dijalankan dua kali.
+function migrateLocations() {
+  const props = PropertiesService.getScriptProperties();
+  const oldId = props.getProperty('LOC_SHEET');
+  if (!oldId) throw new Error('LOC_SHEET tidak diisi, tidak ada yang dimigrasi.');
+  if (oldId === props.getProperty('NOTIF_SHEET')) throw new Error('LOC_SHEET sama dengan NOTIF_SHEET.');
+
+  const oldSh = SpreadsheetApp.openById(oldId).getSheetByName('Lokasi');
+  if (!oldSh || oldSh.getLastRow() < 2) return;
+
+  const lock = LockService.getScriptLock();
+  lock.waitLock(30000);
+  try {
+    const newSh = getOrCreateSheet(SpreadsheetApp.openById(props.getProperty('NOTIF_SHEET')), 'Lokasi', LOC_HEADER);
+    const seen = existingIds(newSh);
+    const n = oldSh.getLastRow() - 1;
+    const times = oldSh.getRange(2, 1, n, 1).getDisplayValues(); // waktu tetap berupa teks WIB
+    const vals = oldSh.getRange(2, 2, n, 4).getValues(); // Lat, Lon, Akurasi, ID
+    const rows = [];
+    for (let i = 0; i < n; i++) {
+      const id = String(vals[i][3]);
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      rows.push([times[i][0], vals[i][0], vals[i][1], vals[i][2], id, mapsLink(vals[i][0], vals[i][1])]);
+    }
+    if (rows.length) {
+      newSh.getRange(newSh.getLastRow() + 1, 1, rows.length, 6).setValues(rows);
+    }
+    Logger.log('Dimigrasi: ' + rows.length + ' baris dari ' + n);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
 // Jalankan sekali dari editor Apps Script untuk mengisi kolom Google Maps di baris lokasi lama.
 function backfillMapLinks() {
   const props = PropertiesService.getScriptProperties();
-  const sh = SpreadsheetApp.openById(props.getProperty('LOC_SHEET')).getSheetByName('Lokasi');
+  const sh = SpreadsheetApp.openById(props.getProperty('NOTIF_SHEET')).getSheetByName('Lokasi');
   const last = sh.getLastRow();
   if (last < 2) return;
   sh.getRange(1, 6).setValue('Google Maps');
