@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_title">NotifLog</string>
+    <string name="hint_url">URL Web App Apps Script</string>
+    <string name="hint_token">Token (sama dengan TOKEN di Apps Script)</string>
+    <string name="hint_interval">Interval lokasi (menit), default 30</string>
+    <string name="hint_rules">Trigger lokasi, satu aturan per baris: aplikasi|judul|isi\n(kosongkan bagian yang bebas, contoh: whatsapp||darurat)</string>
+
+    <string name="btn_notif_access">1. Buka Akses Notifikasi</string>
+    <string name="btn_location_perm">2. Izinkan Lokasi</string>
+    <string name="btn_app_settings">3. Buka Pengaturan App (pilih Lokasi > Izinkan sepanjang waktu)</string>
+    <string name="btn_battery">Matikan Optimasi Baterai (agar tidak dimatikan sistem)</string>
+    <string name="btn_ignore_apps">Pilih App yang Diabaikan</string>
+    <string name="btn_save">4. Simpan &amp; Aktifkan</string>
+    <string name="btn_language">Bahasa: %1$s</string>
+
+    <string name="chk_skip_ongoing">Abaikan notifikasi ongoing (speed meter, musik, navigasi)</string>
+
+    <string name="toast_battery_already">Sudah dikecualikan dari optimasi baterai</string>
+    <string name="toast_ignored_saved">Daftar diabaikan disimpan (%1$d app)</string>
+    <string name="toast_saved">Tersimpan. Interval lokasi: %1$d menit</string>
+
+    <string name="dialog_ignore_title">Centang app yang tidak dicatat</string>
+    <string name="dialog_save">Simpan</string>
+    <string name="dialog_cancel">Batal</string>
+    <string name="dialog_language_title">Bahasa</string>
+
+    <string name="status_listener_connected">Listener tersambung: %1$s</string>
+    <string name="status_listener_disconnected">Listener terputus: %1$s</string>
+    <string name="status_last_notif">Notifikasi terakhir: %1$s</string>
+    <string name="status_last_worker">Worker terakhir jalan: %1$s</string>
+    <string name="status_last_upload">Upload sukses terakhir: %1$s</string>
+    <string name="status_queue">Antrian belum terkirim: %1$d</string>
+    <string name="status_ignored_apps">App diabaikan: %1$s</string>
+    <string name="status_recent_header">Notifikasi terbaru (status):</string>
+    <string name="status_exit_header">Proses terakhir dimatikan:</string>
+
+    <string name="recent_logged">dicatat</string>
+    <string name="recent_ongoing">ongoing</string>
+    <string name="recent_ignored">diabaikan</string>
+
+    <string name="exit_needs_android11">(perlu Android 11+)</string>
+    <string name="exit_signaled">SIGNALED (dibunuh sinyal)</string>
+    <string name="exit_user_stopped">USER_STOPPED (force stop)</string>
+</resources>

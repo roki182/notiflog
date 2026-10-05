@@ -95,6 +95,13 @@ object Prefs {
         sp(ctx).edit().putBoolean("skipOngoing", skip).apply()
     }
 
+    // Bahasa tampilan app: "en" (bawaan) atau "in". Tidak mengikuti bahasa sistem.
+    fun lang(ctx: Context) = sp(ctx).getString("lang", "en") ?: "en"
+
+    fun saveLang(ctx: Context, lang: String) {
+        sp(ctx).edit().putString("lang", lang).apply()
+    }
+
     // Aturan trigger lokasi, satu aturan per baris: aplikasi|judul|isi
     fun rules(ctx: Context) = sp(ctx).getString("rules", "") ?: ""
 

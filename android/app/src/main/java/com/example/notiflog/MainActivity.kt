@@ -1,7 +1,9 @@
 package com.example.notiflog
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
@@ -16,6 +18,7 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
+import java.util.Locale
 import java.util.concurrent.TimeUnit
 
 class MainActivity : AppCompatActivity() {
@@ -30,6 +33,15 @@ class MainActivity : AppCompatActivity() {
         androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
     ) { }
 
+    // Pasang bahasa pilihan pengguna (bawaan Inggris), bukan bahasa sistem.
+    override fun attachBaseContext(base: Context) {
+        val config = Configuration(base.resources.configuration)
+        val locale = Locale(Prefs.lang(base))
+        Locale.setDefault(locale)
+        config.setLocale(locale)
+        super.attachBaseContext(base.createConfigurationContext(config))
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -39,19 +51,19 @@ class MainActivity : AppCompatActivity() {
             setPadding(pad, pad, pad, pad)
         }
 
-        etUrl = EditText(this).apply { hint = "URL Web App Apps Script" }
-        etToken = EditText(this).apply { hint = "Token (sama dengan TOKEN di Apps Script)" }
+        etUrl = EditText(this).apply { hint = getString(R.string.hint_url) }
+        etToken = EditText(this).apply { hint = getString(R.string.hint_token) }
         etInterval = EditText(this).apply {
-            hint = "Interval lokasi (menit), default 30"
+            hint = getString(R.string.hint_interval)
             inputType = android.text.InputType.TYPE_CLASS_NUMBER
         }
 
         val btnNotif = Button(this).apply {
-            text = "1. Buka Akses Notifikasi"
+            text = getString(R.string.btn_notif_access)
             setOnClickListener { startActivity(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) }
         }
         val btnLoc = Button(this).apply {
-            text = "2. Izinkan Lokasi"
+            text = getString(R.string.btn_location_perm)
             setOnClickListener {
                 locPermRequest.launch(
                     arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -59,7 +71,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         val btnBgLoc = Button(this).apply {
-            text = "3. Buka Pengaturan App (pilih Lokasi > Izinkan sepanjang waktu)"
+            text = getString(R.string.btn_app_settings)
             setOnClickListener {
                 startActivity(
                     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:$packageName"))
@@ -67,11 +79,11 @@ class MainActivity : AppCompatActivity() {
             }
         }
         val btnBattery = Button(this).apply {
-            text = "Matikan Optimasi Baterai (agar tidak dimatikan sistem)"
+            text = getString(R.string.btn_battery)
             setOnClickListener {
                 val pm = getSystemService(android.os.PowerManager::class.java)
                 if (pm.isIgnoringBatteryOptimizations(packageName)) {
-                    Toast.makeText(this@MainActivity, "Sudah dikecualikan dari optimasi baterai", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, getString(R.string.toast_battery_already), Toast.LENGTH_SHORT).show()
                 } else {
                     startActivity(
                         Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS, Uri.parse("package:$packageName"))
@@ -80,15 +92,19 @@ class MainActivity : AppCompatActivity() {
             }
         }
         val btnIgnore = Button(this).apply {
-            text = "Pilih App yang Diabaikan"
+            text = getString(R.string.btn_ignore_apps)
             setOnClickListener { pickIgnoredApps() }
         }
+        val btnLanguage = Button(this).apply {
+            text = getString(R.string.btn_language, langName(Prefs.lang(this@MainActivity)))
+            setOnClickListener { pickLanguage() }
+        }
         val btnSave = Button(this).apply {
-            text = "4. Simpan & Aktifkan"
+            text = getString(R.string.btn_save)
             setOnClickListener { saveAndSchedule() }
         }
 
-        root.addView(TextView(this).apply { text = "NotifLog"; textSize = 20f })
+        root.addView(TextView(this).apply { text = getString(R.string.app_title); textSize = 20f })
         root.addView(etUrl)
         root.addView(etToken)
         root.addView(etInterval)
@@ -96,8 +112,7 @@ class MainActivity : AppCompatActivity() {
         root.addView(btnLoc)
         root.addView(btnBgLoc)
         etRules = EditText(this).apply {
-            hint = "Trigger lokasi, satu aturan per baris: aplikasi|judul|isi\n" +
-                "(kosongkan bagian yang bebas, contoh: whatsapp||darurat)"
+            hint = getString(R.string.hint_rules)
             inputType = android.text.InputType.TYPE_CLASS_TEXT or android.text.InputType.TYPE_TEXT_FLAG_MULTI_LINE
             minLines = 3
             gravity = android.view.Gravity.TOP
@@ -106,12 +121,13 @@ class MainActivity : AppCompatActivity() {
         tvStatus = TextView(this)
         root.addView(tvStatus)
         root.addView(android.widget.CheckBox(this).apply {
-            text = "Abaikan notifikasi ongoing (speed meter, musik, navigasi)"
+            text = getString(R.string.chk_skip_ongoing)
             isChecked = Prefs.skipOngoing(this@MainActivity)
             setOnCheckedChangeListener { _, checked -> Prefs.saveSkipOngoing(this@MainActivity, checked) }
         })
         root.addView(btnBattery)
         root.addView(btnIgnore)
+        root.addView(btnLanguage)
         root.addView(btnSave)
         setContentView(root)
 
@@ -128,15 +144,18 @@ class MainActivity : AppCompatActivity() {
             val ms = Prefs.stat(this, key)
             return if (ms == 0L) "-" else fmt.format(java.util.Date(ms))
         }
-        tvStatus.text = "Listener tersambung: ${t("connected")}\n" +
-            "Listener terputus: ${t("disconnected")}\n" +
-            "Notifikasi terakhir: ${t("notif")}\n" +
-            "Worker terakhir jalan: ${t("worker")}\n" +
-            "Upload sukses terakhir: ${t("upload")}\n" +
-            "Antrian belum terkirim: ${Store.readAll(this).size}\n" +
-            "App diabaikan: ${Prefs.ignored(this).sorted().joinToString(", ").ifEmpty { "-" }}\n" +
-            "Notifikasi terbaru (status):\n" + recentNotifs() + "\n" +
-            "Proses terakhir dimatikan:\n" + exitReasons(fmt)
+        tvStatus.text = getString(R.string.status_listener_connected, t("connected")) + "\n" +
+            getString(R.string.status_listener_disconnected, t("disconnected")) + "\n" +
+            getString(R.string.status_last_notif, t("notif")) + "\n" +
+            getString(R.string.status_last_worker, t("worker")) + "\n" +
+            getString(R.string.status_last_upload, t("upload")) + "\n" +
+            getString(R.string.status_queue, Store.readAll(this).size) + "\n" +
+            getString(
+                R.string.status_ignored_apps,
+                Prefs.ignored(this).sorted().joinToString(", ").ifEmpty { "-" }
+            ) + "\n" +
+            getString(R.string.status_recent_header) + "\n" + recentNotifs() + "\n" +
+            getString(R.string.status_exit_header) + "\n" + exitReasons(fmt)
     }
 
     // 8 notifikasi terakhir yang diterima app, yang terbaru di atas, beserta statusnya.
@@ -145,14 +164,22 @@ class MainActivity : AppCompatActivity() {
         val rows = Prefs.recent(this).takeLast(8).reversed().mapNotNull {
             val p = it.split("|", limit = 4)
             if (p.size < 4) null
-            else "${fmt.format(java.util.Date(p[0].toLongOrNull() ?: 0L))} [${p[1]}] ${p[2]} - ${p[3]}"
+            else "${fmt.format(java.util.Date(p[0].toLongOrNull() ?: 0L))} [${statusLabel(p[1])}] ${p[2]} - ${p[3]}"
         }
         return if (rows.isEmpty()) "-" else rows.joinToString("\n")
     }
 
+    // Status disimpan di HP sebagai kata kunci tetap; hanya labelnya yang diterjemahkan.
+    private fun statusLabel(key: String) = when (key) {
+        "dicatat" -> getString(R.string.recent_logged)
+        "ongoing" -> getString(R.string.recent_ongoing)
+        "diabaikan" -> getString(R.string.recent_ignored)
+        else -> key
+    }
+
     // Android mencatat kenapa proses app dimatikan (Android 11 ke atas). Tampilkan 5 terakhir.
     private fun exitReasons(fmt: java.text.SimpleDateFormat): String {
-        if (android.os.Build.VERSION.SDK_INT < 30) return "(perlu Android 11+)"
+        if (android.os.Build.VERSION.SDK_INT < 30) return getString(R.string.exit_needs_android11)
         return try {
             val am = getSystemService(android.app.ActivityManager::class.java)
             val list = am.getHistoricalProcessExitReasons(packageName, 0, 5)
@@ -167,7 +194,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun reasonName(r: Int) = when (r) {
         1 -> "EXIT_SELF"
-        2 -> "SIGNALED (dibunuh sinyal)"
+        2 -> getString(R.string.exit_signaled)
         3 -> "LOW_MEMORY"
         4 -> "CRASH"
         5 -> "CRASH_NATIVE"
@@ -176,7 +203,7 @@ class MainActivity : AppCompatActivity() {
         8 -> "PERMISSION_CHANGE"
         9 -> "EXCESSIVE_RESOURCE_USAGE"
         10 -> "USER_REQUESTED"
-        11 -> "USER_STOPPED (force stop)"
+        11 -> getString(R.string.exit_user_stopped)
         12 -> "DEPENDENCY_DIED"
         13 -> "OTHER"
         14 -> "FREEZER"
@@ -202,15 +229,33 @@ class MainActivity : AppCompatActivity() {
         val selected = checked.copyOf()
 
         android.app.AlertDialog.Builder(this)
-            .setTitle("Centang app yang tidak dicatat")
+            .setTitle(getString(R.string.dialog_ignore_title))
             .setMultiChoiceItems(labels, checked) { _, which, isChecked -> selected[which] = isChecked }
-            .setPositiveButton("Simpan") { _, _ ->
+            .setPositiveButton(R.string.dialog_save) { _, _ ->
                 val result = apps.filterIndexed { i, _ -> selected[i] }.map { it.first }.toSet()
                 Prefs.saveIgnored(this, result)
-                Toast.makeText(this, "Daftar diabaikan disimpan (${result.size} app)", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_ignored_saved, result.size), Toast.LENGTH_SHORT).show()
                 onResume() // segarkan tampilan status
             }
-            .setNegativeButton("Batal", null)
+            .setNegativeButton(R.string.dialog_cancel, null)
+            .show()
+    }
+
+    private fun langName(code: String) = if (code == "in") "Bahasa Indonesia" else "English"
+
+    private fun pickLanguage() {
+        val codes = arrayOf("en", "in")
+        android.app.AlertDialog.Builder(this)
+            .setTitle(R.string.dialog_language_title)
+            .setSingleChoiceItems(
+                codes.map { langName(it) }.toTypedArray(), codes.indexOf(Prefs.lang(this))
+            ) { dialog, which ->
+                dialog.dismiss()
+                if (codes[which] != Prefs.lang(this)) {
+                    Prefs.saveLang(this, codes[which])
+                    recreate()
+                }
+            }
             .show()
     }
 
@@ -235,6 +280,6 @@ class MainActivity : AppCompatActivity() {
             "location", ExistingPeriodicWorkPolicy.UPDATE, locReq
         )
 
-        Toast.makeText(this, "Tersimpan. Interval lokasi: $interval menit", Toast.LENGTH_LONG).show()
+        Toast.makeText(this, getString(R.string.toast_saved, interval), Toast.LENGTH_LONG).show()
     }
 }
